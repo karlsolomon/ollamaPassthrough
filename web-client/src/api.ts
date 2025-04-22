@@ -1,23 +1,42 @@
+// ---------- web-client/src/api.ts ----------
 export async function* chatWithLLM(messages: any[]) {
-  const response = await fetch("http://chat.ezevals.com/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "llama3",
-      messages,
-      stream: true,
-    }),
-  });
+  try {
+    const response = await fetch("http://10.224.174.3:34199/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "gemma3:27b",
+        messages,
+        stream: true,
+      }),
+    });
 
-  const reader = response.body?.getReader();
-  const decoder = new TextDecoder("utf-8");
+    if (!response.ok || !response.body) {
+      console.error("Fetch failed", response.status, response.statusText);
+      return;
+    }
 
-  if (!reader) return;
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    yield decoder.decode(value);
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split("\n").filter(Boolean);
+
+      for (const line of lines) {
+        try {
+          const parsed = JSON.parse(line);
+          yield parsed.message?.content || "";
+        } catch (err) {
+          console.error("Failed to parse line:", line);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Error while streaming:", err);
   }
 }
 

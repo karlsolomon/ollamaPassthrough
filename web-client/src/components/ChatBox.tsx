@@ -1,46 +1,72 @@
-import { useState } from "react";
+// ---------- web-client/src/components/ChatBox.tsx ----------
+import { useEffect, useRef, useState } from "react";
 import { chatWithLLM } from "../api";
+import ReactMarkdown from "react-markdown";
 
 export default function ChatBox() {
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [streamedResponse, setStreamedResponse] = useState("");
+  const [isStreaming, setIsStreaming] = useState(false);
+  const chatBoxRef = useRef<HTMLDivElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!input.trim()) return;
+
     const newMessages = [...messages, { role: "user", content: input }];
     setMessages(newMessages);
     setInput("");
+    setIsStreaming(true);
     setStreamedResponse("");
 
+    let fullReply = "";
+
     for await (const chunk of chatWithLLM(newMessages)) {
-      setStreamedResponse(prev => prev + chunk);
+      fullReply += chunk;
+      setStreamedResponse(fullReply);
     }
 
-    setMessages([...newMessages, { role: "assistant", content: streamedResponse }]);
+    setMessages([...newMessages, { role: "assistant", content: fullReply }]);
+    setIsStreaming(false);
+    setStreamedResponse("");
   };
+
+  useEffect(() => {
+    if (chatBoxRef.current) {
+      chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
+    }
+  }, [messages, streamedResponse]);
 
   return (
     <div className="p-4 max-w-xl mx-auto">
-      <div className="border rounded p-4 mb-4 h-96 overflow-y-scroll">
+      <div ref={chatBoxRef} className="border rounded p-4 mb-4 h-96 overflow-y-scroll">
         {messages.map((msg, idx) => (
           <div key={idx} className={`mb-2 ${msg.role === "user" ? "text-right" : "text-left"}`}>
-            <b>{msg.role === "user" ? "You" : "Bot"}:</b> {msg.content}
+            <b>{msg.role === "user" ? "You" : "Bot"}:</b>{" "}
+            <ReactMarkdown className="whitespace-pre-wrap inline-block">
+              {msg.content}
+            </ReactMarkdown>
           </div>
         ))}
-        {streamedResponse && (
-          <div className="text-left text-blue-600 whitespace-pre-wrap">{streamedResponse}</div>
+        {isStreaming && (
+          <div className="text-left text-blue-600 whitespace-pre-wrap">
+            <ReactMarkdown>{streamedResponse}</ReactMarkdown>
+          </div>
         )}
       </div>
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input
           className="border rounded p-2 flex-1"
           value={input}
-          onChange={e => setInput(e.target.value)}
+          onChange={(e) => setInput(e.target.value)}
           placeholder="Ask something..."
         />
-        <button className="bg-blue-500 text-white px-4 rounded" type="submit">Send</button>
+        <button className="bg-blue-500 text-white px-4 rounded" type="submit" disabled={isStreaming}>
+          Send
+        </button>
       </form>
     </div>
   );
 }
+
