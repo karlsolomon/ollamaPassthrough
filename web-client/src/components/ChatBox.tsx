@@ -32,6 +32,7 @@ export default function ChatBox() {
     for await (const chunk of chatWithLLM(newMessages)) {
       fullReply += chunk;
       setStreamedResponse(fullReply);
+      scrollToBottom();
     }
 
     setMessages([...newMessages, { role: "assistant", content: fullReply }]);
@@ -39,11 +40,15 @@ export default function ChatBox() {
     setStreamedResponse("");
   };
 
-  useEffect(() => {
+  const scrollToBottom = () => {
     if (chatBoxRef.current) {
       chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
     }
-  }, [messages, streamedResponse]);
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const renderMarkdown = (content: string) => (
     <ReactMarkdown
@@ -70,28 +75,28 @@ export default function ChatBox() {
   );
 
   return (
-    <div className="p-4 max-w-xl mx-auto">
-      <div ref={chatBoxRef} className="border rounded p-4 mb-4 h-96 overflow-y-scroll">
+    <div className="bg-gray-900 text-gray-100 p-4 max-w-xl mx-auto">
+      <div ref={chatBoxRef} className="border border-gray-700 rounded p-4 mb-4 h-96 overflow-y-scroll bg-gray-800">
         {messages.map((msg, idx) => (
           <div key={idx} className={`mb-2 ${msg.role === "user" ? "text-right" : "text-left"}`}>
-            <b>{msg.role === "user" ? "You" : "Bot"}:</b>{" "}
+            <b className="text-gray-300">{msg.role === "user" ? "You" : "Bot"}:</b>{" "}
             {renderMarkdown(msg.content)}
           </div>
         ))}
         {isStreaming && (
-          <div className="text-left text-blue-600 whitespace-pre-wrap">
+          <div className="text-left text-blue-400 whitespace-pre-wrap">
             {renderMarkdown(streamedResponse)}
           </div>
         )}
       </div>
       <form onSubmit={handleSubmit} className="flex gap-2">
-        <input
-          className="border rounded p-2 flex-1"
+        <textarea
+          className="textarea textarea-bordered w-full"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask something..."
         />
-        <button className="bg-blue-500 text-white px-4 rounded" type="submit" disabled={isStreaming}>
+        <button className="btn btn-primary" type="submit" disabled={isStreaming}>
           Send
         </button>
       </form>
