@@ -2,6 +2,13 @@
 import { useEffect, useRef, useState } from "react";
 import { chatWithLLM } from "../api";
 import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import rehypeRaw from "rehype-raw";
+import remarkGfm from "remark-gfm";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import "katex/dist/katex.min.css";
 
 export default function ChatBox() {
   const [messages, setMessages] = useState<any[]>([]);
@@ -38,20 +45,42 @@ export default function ChatBox() {
     }
   }, [messages, streamedResponse]);
 
+  const renderMarkdown = (content: string) => (
+    <ReactMarkdown
+      className="whitespace-pre-wrap inline-block"
+      remarkPlugins={[remarkMath, remarkGfm]}
+      rehypePlugins={[rehypeKatex, rehypeRaw]}
+      components={{
+        code({ node, inline, className, children, ...props }) {
+          const match = /language-(\w+)/.exec(className || "");
+          return !inline && match ? (
+            <SyntaxHighlighter style={oneDark} language={match[1]} PreTag="div" {...props}>
+              {String(children).replace(/\n$/, "")}
+            </SyntaxHighlighter>
+          ) : (
+            <code className={className} {...props}>
+              {children}
+            </code>
+          );
+        },
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
+
   return (
     <div className="p-4 max-w-xl mx-auto">
       <div ref={chatBoxRef} className="border rounded p-4 mb-4 h-96 overflow-y-scroll">
         {messages.map((msg, idx) => (
           <div key={idx} className={`mb-2 ${msg.role === "user" ? "text-right" : "text-left"}`}>
             <b>{msg.role === "user" ? "You" : "Bot"}:</b>{" "}
-            <ReactMarkdown className="whitespace-pre-wrap inline-block">
-              {msg.content}
-            </ReactMarkdown>
+            {renderMarkdown(msg.content)}
           </div>
         ))}
         {isStreaming && (
           <div className="text-left text-blue-600 whitespace-pre-wrap">
-            <ReactMarkdown>{streamedResponse}</ReactMarkdown>
+            {renderMarkdown(streamedResponse)}
           </div>
         )}
       </div>
@@ -69,4 +98,3 @@ export default function ChatBox() {
     </div>
   );
 }
-
