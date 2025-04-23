@@ -1,5 +1,6 @@
 import asyncio
 import os
+import json
 
 import httpx
 from fastapi import FastAPI, Request
@@ -18,6 +19,7 @@ app.add_middleware(
 )
 
 OLLAMA_API = "http://localhost:11434"
+current_model = "gemma3:27b"
 
 
 async def warmup_model():
@@ -25,11 +27,11 @@ async def warmup_model():
         async with httpx.AsyncClient() as client:
             res = await client.post(
                 f"{OLLAMA_API}/api/generate",
-                json={"model": "cogito:70b", "prompt": "ping", "stream": False},
+                json={"model": current_model, "prompt": "ping", "stream": False},
                 timeout=30,
             )
             if res.status_code == 200:
-                print("✅ gemma3:27b model warmed up and ready.")
+                print(f"✅ {current_model} model warmed up and ready.")
             else:
                 print(f"⚠️ Warmup failed: {res.status_code} - {res.text}")
     except Exception as e:
@@ -44,27 +46,52 @@ async def on_startup():
 @app.post("/v1/chat/completions")
 async def proxy_chat(request: Request):
     payload = await request.json()
-    # print(f"Outgoigng payload to Ollama: {payload}")
+    payload["model"] = current_model
     stream = payload.get("stream", False)
 
     if stream:
 
         async def stream_response():
-            # print("Request sent to Ollama. Awaiting stream...")
             async with httpx.AsyncClient(timeout=None) as client:
                 async with client.stream(
                     "POST", f"{OLLAMA_API}/api/chat", json=payload
                 ) as resp:
                     async for line in resp.aiter_lines():
                         if line.strip():
-                            # print("Line:", line)
-                            yield line + "\n"
+                            try:
+                                data = json.loads(line)
+                                content = data.get("message", {}).get("content")
+                                if content:
+                                    json_payload = json.dumps({"message": {"content": content}})
+                                    yield f"data: {json_payload}\n\n"
+                            except json.JSONDecodeError:
+                                continue
 
         return StreamingResponse(stream_response(), media_type="text/event-stream")
     else:
         async with httpx.AsyncClient(timeout=None) as client:
             resp = await client.post(f"{OLLAMA_API}/api/chat", json=payload)
-            return JSONResponse(content=resp.json(), status_code=resp.status_code)
+            try:
+                return JSONResponse(content=resp.json(), status_code=resp.status_code)
+            except Exception as e:
+                return JSONResponse(content={"error": "Failed to parse Ollama response", "details": str(e)}, status_code=500)
+
+
+@app.get("/models")
+async def get_models():
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(f"{OLLAMA_API}/api/tags")
+        data = resp.json()
+        return {"models": [m["name"] for m in data.get("models", [])]}
+
+
+@app.post("/model")
+async def set_model(request: Request):
+    global current_model
+    data = await request.json()
+    current_model = data.get("model", current_model)
+    print(f"🔁 Model switched to: {current_model}")
+    return {"status": "ok", "model": current_model}
 
 
 # Path to your frontend build directory
