@@ -1,17 +1,14 @@
 import asyncio
 import os
-import subprocess
 
 import httpx
-from fastapi import FastAPI, Request, UploadFile, File
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from starlette.responses import JSONResponse
 
 app = FastAPI()
-current_model = "gemma3:27b"
-uploaded_file_context = ""
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Replace with ["https://chat.ezevals.com"] in prod
@@ -22,33 +19,6 @@ app.add_middleware(
 
 OLLAMA_API = "http://localhost:11434"
 
-@app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
-    global uploaded_file_context
-    contents = await file.read()
-    try:
-        uploaded_file_context = contents.decode("utf-8")
-    except UnicodeDecodeError:
-        return JSONResponse(status_code=400, content={"error": "Invalid UTF-8 encoding."})
-
-    print(f"✅ Uploaded file '{file.filename}' loaded into context.")
-    return {"status": "ok", "filename": file.filename}
-
-@app.get("/models")
-async def list_models():
-    result = subprocess.run(["ollama", "list"], capture_output=True, text=True)
-    models = []
-    for line in result.stdout.splitlines()[1:]:
-        if line.strip():
-            models.append(line.split()[0])
-    return { "models": models }
-
-@app.post("/model")
-async def set_model(request: Request):
-    global current_model
-    body = await request.json()
-    current_model = body["model"]
-    return { "status": "ok", "model": current_model }
 
 async def warmup_model():
     try:
@@ -72,38 +42,30 @@ async def on_startup():
 
 
 @app.post("/v1/chat/completions")
-async def stream_response(request: Request):
-    global current_model, uploaded_file_context
-
+async def proxy_chat(request: Request):
     payload = await request.json()
-    payload["model"] = current_model
-    payload["stream"] = True
+    # print(f"Outgoigng payload to Ollama: {payload}")
+    stream = payload.get("stream", False)
 
-    if uploaded_file_context:
-        payload["messages"] = [
-            {
-                "role": "system",
-                "content": f"The user uploaded the following document:\n\n{uploaded_file_context[:5000]}"
-            }
-        ] + payload.get("messages", [])
-        uploaded_file_context = ""
+    if stream:
 
-    async def streamer():
+        async def stream_response():
+            # print("Request sent to Ollama. Awaiting stream...")
+            async with httpx.AsyncClient(timeout=None) as client:
+                async with client.stream(
+                    "POST", f"{OLLAMA_API}/api/chat", json=payload
+                ) as resp:
+                    async for line in resp.aiter_lines():
+                        if line.strip():
+                            # print("Line:", line)
+                            yield line + "\n"
+
+        return StreamingResponse(stream_response(), media_type="text/event-stream")
+    else:
         async with httpx.AsyncClient(timeout=None) as client:
-            async with client.stream("POST", "http://localhost:11434/api/chat", json=payload) as response:
-                async for line in response.aiter_lines():
-                    if not line.strip():
-                        continue
-                    if line.startswith("data:"):
-                        try:
-                            json_data = json.loads(line[5:].strip())
-                            token = json_data.get("message", {}).get("content", "")
-                            if token:
-                                yield f"data: {token}\n\n"
-                        except json.JSONDecodeError:
-                            continue
+            resp = await client.post(f"{OLLAMA_API}/api/chat", json=payload)
+            return JSONResponse(content=resp.json(), status_code=resp.status_code)
 
-    return StreamingResponse(streamer(), media_type="text/event-stream")
 
 # Path to your frontend build directory
 frontend_path = os.path.join(os.path.dirname(__file__), "../web-client/dist")
