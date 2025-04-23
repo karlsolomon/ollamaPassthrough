@@ -69,7 +69,7 @@ export default function ChatBox() {
   return (
     <div className="min-h-screen bg-base-100 flex flex-col">
       {/* Banner */}
-      <div className="bg-secondary text-white text-center py-3 shadow-lg">
+      <div className="bg-primary text-neutral text-center py-3 shadow-lg">
         <h1 className="text-2xl font-bold tracking-wide">💬 Welcome to AI Chat!</h1>
       </div>
 
@@ -103,7 +103,7 @@ export default function ChatBox() {
               key={index}
               className={`chat ${isUser ? 'chat-end' : 'chat-start'} mb-4`}
             >
-              <div className={`chat-bubble ${isUser ? 'chat-bubble-primary' : 'chat-bubble-accent'} max-w-2xl`}>
+              <div className={`chat-bubble ${isUser ? 'chat-bubble-primary' : 'chat-bubble-base-300'} max-w-2xl`}>
                 <ReactMarkdown
                   rehypePlugins={[rehypeRaw, rehypeKatex]}
                   remarkPlugins={[remarkGfm, remarkMath]}
