@@ -1,7 +1,5 @@
+@import "daisyui/dist/full.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-    @apply bg-red-800 text-white;
-}

@@ -99,6 +99,7 @@ export default function ChatBox() {
         <button className="btn btn-primary" type="submit" disabled={isStreaming}>
           Send
         </button>
+        <button className="btn btn-primary">Test Button</button>
       </form>
     </div>
   );
