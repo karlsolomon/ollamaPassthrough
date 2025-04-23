@@ -3,3 +3,12 @@
 @tailwind components;
 @tailwind utilities;
 
+.rehype-katex {
+    font-size: 0.9em;
+}
+.math-inline,
+.math-display {
+    margin: 0.2em 0;
+    padding: 0.1em 0;
+    border-radius: 4px;
+}

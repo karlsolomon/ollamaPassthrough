@@ -5,7 +5,8 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
-import { LightAsync as SyntaxHighlighter } from "react-syntax-highlighter";
+import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
+import { atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import "katex/dist/katex.min.css";
 
 export default function ChatBox() {
@@ -76,8 +77,10 @@ export default function ChatBox() {
             className={`chat ${msg.role === "user" ? "chat-end" : "chat-start"}`}
           >
             <div
-              className={`chat-bubble ${
-                msg.role === "user" ? "bg-primary text-primary-content" : "bg-base-300"
+              className={`chat-bubble whitespace-pre-wrap break-words ${
+                msg.role === "user"
+                  ? "bg-primary text-primary-content"
+                  : "bg-base-300 text-base-content"
               } max-w-xl`}
             >
               <ReactMarkdown
@@ -87,15 +90,21 @@ export default function ChatBox() {
                   code({ node, inline, className, children, ...props }) {
                     const match = /language-(\w+)/.exec(className || "");
                     return !inline && match ? (
-                      <SyntaxHighlighter language={match[1]} PreTag="div" {...props}>
+                      <SyntaxHighlighter
+                        style={atomOneDark}
+                        language={match[1]}
+                        PreTag="div"
+                        wrapLongLines
+                        {...props}
+                      >
                         {String(children).replace(/\n$/, "")}
                       </SyntaxHighlighter>
                     ) : (
-                      <code className={className} {...props}>
+                      <code className="bg-base-300 p-1 rounded text-sm" {...props}>
                         {children}
                       </code>
                     );
-                  },
+                  }
                 }}
               >
                 {msg.content}
