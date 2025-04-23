@@ -80,29 +80,41 @@ export default function ChatBox() {
   );
 
   return (
-    <div className="bg-gray-900 text-gray-100 flex flex-col h-screen max-w-3xl mx-auto">
+    <div className="bg-base-200 text-base-content flex flex-col h-screen max-w-3xl mx-auto">
       <div ref={chatBoxRef} className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, idx) => (
           <div
             key={idx}
             className={`chat ${msg.role === "user" ? "chat-end" : "chat-start"}`}
           >
-            <div className={`chat-bubble ${msg.role === "user" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-100"}`}>
+            <div className="chat-image avatar">
+              <div className="w-8 rounded-full">
+                <span>{msg.role === "user" ? "🧑" : "🤖"}</span>
+              </div>
+            </div>
+            <div
+              className={`chat-bubble ${msg.role === "user" ? "bg-primary text-primary-content" : "bg-base-300 text-base-content"}`}
+            >
               {renderMarkdown(msg.content)}
             </div>
           </div>
         ))}
         {isStreaming && (
           <div className="chat chat-start">
-            <div className="chat-bubble bg-gray-700 text-blue-400">
+            <div className="chat-image avatar">
+              <div className="w-8 rounded-full">
+                <span>🤖</span>
+              </div>
+            </div>
+            <div className="chat-bubble bg-base-300 text-primary">
               {renderMarkdown(streamedResponse)}
             </div>
           </div>
         )}
       </div>
-      <form onSubmit={handleSubmit} className="p-4 flex gap-2 bg-gray-800 border-t border-gray-700">
+      <form onSubmit={handleSubmit} className="p-4 flex gap-2 bg-base-300 border-t border-base-content/10">
         <textarea
-          className="textarea textarea-bordered textarea-lg w-full bg-gray-900 text-white resize-none"
+          className="textarea textarea-bordered textarea-lg w-full bg-base-200 text-base-content resize-none"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -115,3 +127,4 @@ export default function ChatBox() {
     </div>
   );
 }
+
