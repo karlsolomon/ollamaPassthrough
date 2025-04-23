@@ -1,42 +1,51 @@
-// ---------- web-client/src/api.ts ----------
-export async function* chatWithLLM(messages: any[]) {
-  try {
-    const response = await fetch("http://10.224.174.3:34199/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "cogito:70b",
-        messages,
-        stream: true,
-      }),
-    });
+const BASE_URL = "http://10.224.174.3:34199"; // Your backend URL
 
-    if (!response.ok || !response.body) {
-      console.error("Fetch failed", response.status, response.statusText);
-      return;
-    }
+export async function chatWithLLM(messages: any[], model: string, onData: (chunk: string) => void) {
+  const response = await fetch(`${BASE_URL}/v1/chat/completions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model,
+      messages,
+      stream: true,
+    }),
+  });
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder("utf-8");
+  if (!response.ok || !response.body) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
 
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split("\n").filter(Boolean);
-
-      for (const line of lines) {
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = decoder.decode(value, { stream: true });
+    chunk
+      .split("data: ")
+      .filter(line => line.trim())
+      .forEach((line) => {
         try {
-          const parsed = JSON.parse(line);
-          yield parsed.message?.content || "";
-        } catch (err) {
-          console.error("Failed to parse line:", line);
+          const json = JSON.parse(line.trim());
+          onData(json.message?.content ?? "");
+        } catch (e) {
+          console.warn("Non-JSON line:", line.trim());
         }
-      }
-    }
-  } catch (err) {
-    console.error("Error while streaming:", err);
+      });
   }
 }
 
+export async function fetchModelList(): Promise<string[]> {
+  const res = await fetch(`${BASE_URL}/models`);
+  const data = await res.json();
+  return data.models || [];
+}
+
+export async function setModel(model: string) {
+  await fetch(`${BASE_URL}/model`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model }),
+  });
+}
