@@ -9,7 +9,6 @@ import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
 import { atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import "katex/dist/katex.min.css";
 
-// Define types for better type safety
 interface Message {
   role: 'user' | 'assistant';
   content: string;
@@ -36,7 +35,6 @@ export default function ChatBox() {
   const handleSend: React.FormEventHandler<HTMLButtonElement> = async () => {
     if (!input.trim()) return;
 
-    // Create new message and add placeholder for assistant response
     const userMsg: Message = { role: 'user', content: input };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
@@ -44,8 +42,6 @@ export default function ChatBox() {
 
     try {
       await setModel(model);
-      
-      // Handle chat with LLM and streaming responses
       await chatWithLLM([...messages, userMsg], model, (chunk) => {
         setMessages((prev) => {
           const updated = [...prev];
@@ -71,23 +67,23 @@ export default function ChatBox() {
   };
 
   return (
-    <div className="min-h-screen bg-base-100">
-      {/* Chat Header */}
-      <header className="bg-primary text-white p-4 shadow-md">
-        <h1 className="text-xl font-bold">AI Chat Interface</h1>
-      </header>
+    <div className="min-h-screen bg-base-100 flex flex-col">
+      {/* Banner */}
+      <div className="bg-secondary text-white text-center py-3 shadow-lg">
+        <h1 className="text-2xl font-bold tracking-wide">💬 Welcome to AI Chat!</h1>
+      </div>
 
-      {/* Model Selector */}
+      {/* Sticky Model Selector */}
       {models.length > 0 && (
-        <div className="p-4 bg-base-200">
-          <label htmlFor="model" className="block text-sm font-medium text-gray-700 mb-2">
+        <div className="sticky top-0 z-10 bg-base-200 p-4 shadow-md">
+          <label htmlFor="model" className="block text-sm font-medium text-gray-300 mb-2">
             Select Model:
           </label>
           <select
             id="model"
             value={model}
             onChange={(e) => setCurrentModel(e.target.value)}
-            className="w-full max-w-xs bg-white rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="select select-bordered w-full max-w-xs"
           >
             {models.map((m) => (
               <option key={m} value={m}>
@@ -98,23 +94,19 @@ export default function ChatBox() {
         </div>
       )}
 
-      {/* Chat Container */}
-      <div className="flex-grow p-4 overflow-y-auto">
+      {/* Chat Messages */}
+      <div className="flex-grow p-4 overflow-y-auto" ref={containerRef}>
         {messages.map((message, index) => {
           const isUser = message.role === 'user';
           return (
             <div
               key={index}
-              className={`mb-4 ${isUser ? 'text-right' : ''}`}
+              className={`chat ${isUser ? 'chat-end' : 'chat-start'} mb-4`}
             >
-              <div
-                className={`inline-block p-2 rounded-md ${
-                  isUser
-                    ? 'bg-primary text-white'
-                    : 'bg-base-200 text-gray-700'
-                }`}
-              >
+              <div className={`chat-bubble ${isUser ? 'chat-bubble-primary' : 'chat-bubble-accent'} max-w-2xl`}>
                 <ReactMarkdown
+                  rehypePlugins={[rehypeRaw, rehypeKatex]}
+                  remarkPlugins={[remarkGfm, remarkMath]}
                   components={{
                     code: ({ node, inline, className, children, ...props }) => {
                       const match = /language-(\w+)/.exec(className || '');
@@ -144,19 +136,19 @@ export default function ChatBox() {
       </div>
 
       {/* Input Area */}
-      <div className="p-4 bg-base-200 flex items-center gap-2">
+      <div className="bg-base-200 p-4 flex gap-2 items-end">
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type your message..."
           rows={3}
-          className="flex-grow w-full resize-none rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="textarea textarea-bordered flex-grow resize-none"
         />
         <button
           onClick={handleSend}
           disabled={streaming}
-          className={`btn ${streaming ? 'loading' : ''} btn-primary`}
+          className={`btn btn-primary ${streaming ? 'loading' : ''}`}
         >
           Send
         </button>
