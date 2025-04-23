@@ -1,5 +1,21 @@
 const BASE_URL = "http://10.224.174.3:34199"; // Your backend URL
 
+export async function uploadFileToContext(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch("/upload", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Upload failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+
 export async function chatWithLLM(messages: any[], model: string, onData: (chunk: string) => void) {
   const response = await fetch(`${BASE_URL}/v1/chat/completions`, {
     method: "POST",

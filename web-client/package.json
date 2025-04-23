@@ -9,8 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@babel/preset-react": "^7.26.3",
+    "eventsource-parser": "^3.0.1",
     "highlight.js": "^11.11.1",
     "katex": "^0.16.22",
+    "lodash": "^4.17.21",
+    "phosphor-react": "^1.4.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-markdown": "^10.1.0",

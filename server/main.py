@@ -1,12 +1,15 @@
 import asyncio
-import os
 import json
+import os
 
 import httpx
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, File, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+
+uploaded_file_context = ""
 
 app = FastAPI()
 
@@ -20,6 +23,18 @@ app.add_middleware(
 
 OLLAMA_API = "http://localhost:11434"
 current_model = "gemma3:27b"
+
+
+class UploadPayload(BaseModel):
+    content: str
+
+
+@app.post("/upload")
+async def upload(file: UploadFile = File(...)):
+    global uploaded_file_context
+    contents = await file.read()
+    uploaded_file_context = contents.decode("utf-8")
+    return {"message": f"File '{file.filename}' uploaded successfully"}
 
 
 async def warmup_model():
@@ -49,6 +64,11 @@ async def proxy_chat(request: Request):
     payload["model"] = current_model
     stream = payload.get("stream", False)
 
+    if uploaded_file_context:
+        message = payload.get("messages", [])
+        message.insert(0, {"role": "user", "content": uploaded_file_context})
+        payload["messages"] = message
+
     if stream:
 
         async def stream_response():
@@ -62,7 +82,9 @@ async def proxy_chat(request: Request):
                                 data = json.loads(line)
                                 content = data.get("message", {}).get("content")
                                 if content:
-                                    json_payload = json.dumps({"message": {"content": content}})
+                                    json_payload = json.dumps(
+                                        {"message": {"content": content}}
+                                    )
                                     yield f"data: {json_payload}\n\n"
                             except json.JSONDecodeError:
                                 continue
@@ -74,7 +96,13 @@ async def proxy_chat(request: Request):
             try:
                 return JSONResponse(content=resp.json(), status_code=resp.status_code)
             except Exception as e:
-                return JSONResponse(content={"error": "Failed to parse Ollama response", "details": str(e)}, status_code=500)
+                return JSONResponse(
+                    content={
+                        "error": "Failed to parse Ollama response",
+                        "details": str(e),
+                    },
+                    status_code=500,
+                )
 
 
 @app.get("/models")

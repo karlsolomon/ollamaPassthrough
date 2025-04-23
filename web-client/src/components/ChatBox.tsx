@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm";
 import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
 import { atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import "katex/dist/katex.min.css";
+import { uploadFileToContext } from "../api";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -20,7 +21,29 @@ export default function ChatBox() {
   const [models, setModels] = useState<string[]>([]);
   const [model, setCurrentModel] = useState<string>("gemma3:27b");
   const [streaming, setStreaming] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+  
+    setUploading(true);
+    setUploadStatus(null);
+  
+    try {
+      await uploadFileToContext(file);
+      setUploadStatus(`✅ Uploaded: ${file.name}`);
+    } catch (err) {
+      console.error("File upload failed:", err);
+      setUploadStatus("❌ Upload failed. See console.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   useEffect(() => {
     fetchModelList().then(setModels);
@@ -134,6 +157,19 @@ export default function ChatBox() {
           );
         })}
       </div>
+
+      {/* File Upload Section */}
+      <div className="flex items-center gap-2">
+        <input
+          type="file"
+          className="file-input file-input-bordered w-full max-w-xs"
+          onChange={handleFileUpload}
+          ref={fileInputRef}
+          disabled={uploading}
+        />
+        {uploading && <span className="loading loading-spinner text-primary"></span>}
+        {uploadStatus && <span className="text-sm text-success">{uploadStatus}</span>}
+      </div> 
 
       {/* Input Area */}
       <div className="bg-base-200 p-4 flex gap-2 items-end">

@@ -12,4 +12,9 @@ export default defineConfig({
       '/model': 'http://10.224.174.3:34199',
     },
   },
+  experimental: {
+    resolver: {
+      node: true,
+    },
+  },
 });

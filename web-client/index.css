@@ -12,3 +12,42 @@
     padding: 0.1em 0;
     border-radius: 4px;
 }
+.chat-box {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.chat-container {
+  overflow-y: auto;
+  flex-grow: 1;
+  padding: 1rem;
+}
+
+.chat-streaming {
+  text-align: center;
+  color: #666;
+  margin-top: 1rem;
+}
+
+.input-container {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-top: 1px solid #ddd;
+}
+
+textarea {
+  flex-grow: 1;
+  padding: 0.5rem;
+  min-height: 50px;
+}
+
+.chat-message {
+  word-wrap: break-word;
+}
+
+.chat-name {
+  font-weight: bold;
+  margin-right: 0.5rem;
+}
