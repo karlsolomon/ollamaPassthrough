@@ -5,7 +5,7 @@ export async function* chatWithLLM(messages: any[]) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "gemma3:27b",
+        model: "cogito:70b",
         messages,
         stream: true,
       }),

@@ -1,4 +1,3 @@
-// ---------- web-client/src/components/ChatBox.tsx ----------
 import { useEffect, useRef, useState } from "react";
 import { chatWithLLM } from "../api";
 import ReactMarkdown from "react-markdown";
@@ -17,8 +16,8 @@ export default function ChatBox() {
   const [isStreaming, setIsStreaming] = useState(false);
   const chatBoxRef = useRef<HTMLDivElement>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!input.trim()) return;
 
     const newMessages = [...messages, { role: "user", content: input }];
@@ -40,6 +39,12 @@ export default function ChatBox() {
     setStreamedResponse("");
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && e.ctrlKey) {
+      handleSubmit();
+    }
+  };
+
   const scrollToBottom = () => {
     if (chatBoxRef.current) {
       chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
@@ -52,7 +57,7 @@ export default function ChatBox() {
 
   const renderMarkdown = (content: string) => (
     <ReactMarkdown
-      className="whitespace-pre-wrap inline-block"
+      className="whitespace-pre-wrap"
       remarkPlugins={[remarkMath, remarkGfm]}
       rehypePlugins={[rehypeKatex, rehypeRaw]}
       components={{
@@ -75,31 +80,37 @@ export default function ChatBox() {
   );
 
   return (
-    <div className="bg-gray-900 text-gray-100 p-4 max-w-xl mx-auto">
-      <div ref={chatBoxRef} className="border border-gray-700 rounded p-4 mb-4 h-96 overflow-y-scroll bg-gray-800">
+    <div className="bg-gray-900 text-gray-100 flex flex-col h-screen max-w-3xl mx-auto">
+      <div ref={chatBoxRef} className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, idx) => (
-          <div key={idx} className={`mb-2 ${msg.role === "user" ? "text-right" : "text-left"}`}>
-            <b className="text-gray-300">{msg.role === "user" ? "You" : "Bot"}:</b>{" "}
-            {renderMarkdown(msg.content)}
+          <div
+            key={idx}
+            className={`chat ${msg.role === "user" ? "chat-end" : "chat-start"}`}
+          >
+            <div className={`chat-bubble ${msg.role === "user" ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-100"}`}>
+              {renderMarkdown(msg.content)}
+            </div>
           </div>
         ))}
         {isStreaming && (
-          <div className="text-left text-blue-400 whitespace-pre-wrap">
-            {renderMarkdown(streamedResponse)}
+          <div className="chat chat-start">
+            <div className="chat-bubble bg-gray-700 text-blue-400">
+              {renderMarkdown(streamedResponse)}
+            </div>
           </div>
         )}
       </div>
-      <form onSubmit={handleSubmit} className="flex gap-2">
+      <form onSubmit={handleSubmit} className="p-4 flex gap-2 bg-gray-800 border-t border-gray-700">
         <textarea
-          className="textarea textarea-bordered w-full"
+          className="textarea textarea-bordered textarea-lg w-full bg-gray-900 text-white resize-none"
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder="Ask something..."
         />
         <button className="btn btn-primary" type="submit" disabled={isStreaming}>
           Send
         </button>
-        <button className="btn btn-primary">Test Button</button>
       </form>
     </div>
   );

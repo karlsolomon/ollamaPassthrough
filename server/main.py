@@ -25,7 +25,7 @@ async def warmup_model():
         async with httpx.AsyncClient() as client:
             res = await client.post(
                 f"{OLLAMA_API}/api/generate",
-                json={"model": "gemma3:27b", "prompt": "ping", "stream": False},
+                json={"model": "cogito:70b", "prompt": "ping", "stream": False},
                 timeout=30,
             )
             if res.status_code == 200:
