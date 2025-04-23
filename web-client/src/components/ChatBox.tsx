@@ -9,8 +9,14 @@ import { Light as SyntaxHighlighter } from "react-syntax-highlighter";
 import { atomOneDark } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import "katex/dist/katex.min.css";
 
+// Define types for better type safety
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export default function ChatBox() {
-  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [models, setModels] = useState<string[]>([]);
   const [model, setCurrentModel] = useState<string>("gemma3:27b");
@@ -27,110 +33,130 @@ export default function ChatBox() {
     }
   }, [messages]);
 
-  const handleSend = async () => {
+  const handleSend: React.FormEventHandler<HTMLButtonElement> = async () => {
     if (!input.trim()) return;
 
-    const userMsg = { role: "user", content: input };
-    setMessages((prev) => [...prev, userMsg, { role: "assistant", content: "" }]);
+    // Create new message and add placeholder for assistant response
+    const userMsg: Message = { role: 'user', content: input };
+    setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setStreaming(true);
 
-    await setModel(model);
-
-    await chatWithLLM([...messages, userMsg], model, (chunk) => {
-      setMessages((prev) => {
-        const updated = [...prev];
-        updated[updated.length - 1].content += chunk;
-        return updated;
+    try {
+      await setModel(model);
+      
+      // Handle chat with LLM and streaming responses
+      await chatWithLLM([...messages, userMsg], model, (chunk) => {
+        setMessages((prev) => {
+          const updated = [...prev];
+          if (updated.length > 0 && updated[updated.length - 1].role === 'assistant') {
+            updated[updated.length - 1].content += chunk;
+          } else {
+            updated.push({ role: 'assistant', content: chunk });
+          }
+          return updated;
+        });
       });
-    });
+    } catch (error) {
+      console.error('Error sending message:', error);
+    } finally {
+      setStreaming(false);
+    }
+  };
 
-    setStreaming(false);
+  const handleKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      handleSend();
+    }
   };
 
   return (
-    <div className="flex flex-col h-screen p-4 bg-base-100 text-base-content">
-      <div className="form-control w-full max-w-xs mb-4">
-        <label className="label">
-          <span className="label-text">Model:</span>
-        </label>
-        <select
-          className="select select-bordered"
-          value={model}
-          onChange={(e) => setCurrentModel(e.target.value)}
-        >
-          {models.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </select>
-      </div>
+    <div className="min-h-screen bg-base-100">
+      {/* Chat Header */}
+      <header className="bg-primary text-white p-4 shadow-md">
+        <h1 className="text-xl font-bold">AI Chat Interface</h1>
+      </header>
 
-      <div
-        ref={containerRef}
-        className="flex-1 overflow-y-auto space-y-4 mb-4 bg-base-200 p-4 rounded-lg"
-      >
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`chat ${msg.role === "user" ? "chat-end" : "chat-start"}`}
+      {/* Model Selector */}
+      {models.length > 0 && (
+        <div className="p-4 bg-base-200">
+          <label htmlFor="model" className="block text-sm font-medium text-gray-700 mb-2">
+            Select Model:
+          </label>
+          <select
+            id="model"
+            value={model}
+            onChange={(e) => setCurrentModel(e.target.value)}
+            className="w-full max-w-xs bg-white rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
+            {models.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Chat Container */}
+      <div className="flex-grow p-4 overflow-y-auto">
+        {messages.map((message, index) => {
+          const isUser = message.role === 'user';
+          return (
             <div
-              className={`chat-bubble whitespace-pre-wrap break-words ${
-                msg.role === "user"
-                  ? "bg-primary text-primary-content"
-                  : "bg-base-300 text-base-content"
-              } max-w-xl`}
+              key={index}
+              className={`mb-4 ${isUser ? 'text-right' : ''}`}
             >
-              <ReactMarkdown
-                remarkPlugins={[remarkMath, remarkGfm]}
-                rehypePlugins={[rehypeRaw, rehypeKatex]}
-                components={{
-                  code({ node, inline, className, children, ...props }) {
-                    const match = /language-(\w+)/.exec(className || "");
-                    return !inline && match ? (
-                      <SyntaxHighlighter
-                        style={atomOneDark}
-                        language={match[1]}
-                        PreTag="div"
-                        wrapLongLines
-                        {...props}
-                      >
-                        {String(children).replace(/\n$/, "")}
-                      </SyntaxHighlighter>
-                    ) : (
-                      <code className="bg-base-300 p-1 rounded text-sm" {...props}>
-                        {children}
-                      </code>
-                    );
-                  }
-                }}
+              <div
+                className={`inline-block p-2 rounded-md ${
+                  isUser
+                    ? 'bg-primary text-white'
+                    : 'bg-base-200 text-gray-700'
+                }`}
               >
-                {msg.content}
-              </ReactMarkdown>
+                <ReactMarkdown
+                  components={{
+                    code: ({ node, inline, className, children, ...props }) => {
+                      const match = /language-(\w+)/.exec(className || '');
+                      return !inline && match ? (
+                        <SyntaxHighlighter
+                          style={atomOneDark}
+                          language={match[1]}
+                          PreTag="div"
+                          {...props}
+                        >
+                          {String(children).replace(/\n$/, '')}
+                        </SyntaxHighlighter>
+                      ) : (
+                        <code className={className} {...props}>
+                          {children}
+                        </code>
+                      );
+                    },
+                  }}
+                >
+                  {message.content}
+                </ReactMarkdown>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      <div className="flex gap-2">
+      {/* Input Area */}
+      <div className="p-4 bg-base-200 flex items-center gap-2">
         <textarea
-          className="textarea textarea-bordered w-full"
-          placeholder="Ask something..."
-          rows={2}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-              handleSend();
-            }
-          }}
+          onKeyDown={handleKeyDown}
+          placeholder="Type your message..."
+          rows={3}
+          className="flex-grow w-full resize-none rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         />
         <button
-          className="btn btn-primary"
           onClick={handleSend}
           disabled={streaming}
+          className={`btn ${streaming ? 'loading' : ''} btn-primary`}
         >
           Send
         </button>
@@ -138,4 +164,3 @@ export default function ChatBox() {
     </div>
   );
 }
-
