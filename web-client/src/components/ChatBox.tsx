@@ -92,9 +92,14 @@ export default function ChatBox() {
   return (
     <div className="min-h-screen bg-base-100 flex flex-col">
       {/* Banner */}
-      <div className="bg-primary text-neutral text-center py-3 shadow-lg">
-        <h1 className="text-2xl font-bold tracking-wide">💬 Welcome to AI Chat!</h1>
-      </div>
+	  <div className="bg-primary bg-gradient-to-r from-primary to-secondary flex items-center justify-center py-8 shadow-lg">
+	    <div className="text-center">
+	      <h1 className="md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-wide text-neutral">🤖 AI Chat Assistant</h1>
+	      <p className="text-lg text-neutral text-opacity-80 max-w-md mx-auto">
+	        Have a conversation with an AI assistant. Ask questions, get answers, and explore possibilities!
+	      </p>
+	    </div>
+	  </div>
 
       {/* Sticky Model Selector */}
       {models.length > 0 && (
