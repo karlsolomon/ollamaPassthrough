@@ -34,18 +34,14 @@ class UploadPayload(BaseModel):
 async def upload(files: List[UploadFile] = File(...)):
     global uploaded_file_context
     contents = []
+
     for file in files:
-        data = await file.read()
-        contents.append(data.decode("utf-8"))
-    uploaded_file_context = "\n\n".join(
-        f"# File: {file.filename}\n{data.decode('utf-8')}"
-        for file, data in zip(files, await asyncio.gather(*(f.read() for f in files)))
-    )
+        file_content = await file.read()
+        text = file_content.decode("utf-8")
+        contents.append(f"# File: {file.filename}\n{text}")
 
-
-
-
-    return {"message": f"{len(files)} file(s) uploaded successfully"}
+    uploaded_file_context = "\n\n".join(contents)
+    return {"message": f"{len(files)} file(s) uploaded successfully", "filenames": [f.filename for f in files]}
 
 
 async def warmup_model():
