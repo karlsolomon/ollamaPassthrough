@@ -41,6 +41,8 @@ async def upload(files: List[UploadFile] = File(...)):
         contents.append(f"# File: {file.filename}\n{text}")
 
     uploaded_file_context = "\n\n".join(contents)
+    print("📂 Upload context initialized with:")
+    print(uploaded_file_context[:500])  # limit preview
     return {"message": f"{len(files)} file(s) uploaded successfully", "filenames": [f.filename for f in files]}
 
 
@@ -68,6 +70,7 @@ async def on_startup():
 @app.post("/v1/chat/completions")
 async def proxy_chat(request: Request):
     payload = await request.json()
+    print(f"sending payload to model: {payload}")
     payload["model"] = current_model
     stream = payload.get("stream", False)
 
