@@ -2,7 +2,7 @@ const BASE_URL = "http://10.224.174.3:34199"; // Your backend URL
 
 export async function uploadFileToContext(...files: File[]) {
   const formData = new FormData();
-  files.forEach(file => formData.append("file", file));
+  files.forEach(file => formData.append("files", file));
 
   const response = await fetch("/upload", {
     method: "POST",
