@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+from typing import List
 
 import httpx
 from fastapi import FastAPI, File, Request, UploadFile
@@ -30,11 +31,14 @@ class UploadPayload(BaseModel):
 
 
 @app.post("/upload")
-async def upload(file: UploadFile = File(...)):
+async def upload(files: List[UploadFile] = File(...)):
     global uploaded_file_context
-    contents = await file.read()
-    uploaded_file_context = contents.decode("utf-8")
-    return {"message": f"File '{file.filename}' uploaded successfully"}
+    contents = []
+    for file in files:
+        data = await file.read()
+        contents.append(data.decode("utf-8"))
+    uploaded_file_context = "\n\n".join(contents)
+    return {"message": f"{len(files)} file(s) uploaded successfully"}
 
 
 async def warmup_model():
@@ -137,3 +141,4 @@ app.mount(
 @app.get("/{full_path:path}")
 async def serve_spa():
     return FileResponse(os.path.join(frontend_path, "index.html"))
+

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@babel/preset-react": "^7.26.3",
+    "bootstrap": "^5.3.5",
     "eventsource-parser": "^3.0.1",
     "highlight.js": "^11.11.1",
     "katex": "^0.16.22",
@@ -20,6 +21,7 @@
     "react-markdown": "^10.1.0",
     "react-syntax-highlighter": "^15.6.1",
     "rehype-katex": "^7.0.1",
+    "rehype-prism-plus": "^2.0.1",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0"
