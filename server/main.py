@@ -37,7 +37,14 @@ async def upload(files: List[UploadFile] = File(...)):
     for file in files:
         data = await file.read()
         contents.append(data.decode("utf-8"))
-    uploaded_file_context = "\n\n".join(contents)
+    uploaded_file_context = "\n\n".join(
+        f"# File: {file.filename}\n{data.decode('utf-8')}"
+        for file, data in zip(files, await asyncio.gather(*(f.read() for f in files)))
+    )
+
+
+
+
     return {"message": f"{len(files)} file(s) uploaded successfully"}
 
 
