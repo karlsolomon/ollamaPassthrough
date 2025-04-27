@@ -9,12 +9,20 @@ export interface Model {
   name: string;
   nickname: string;
   context: number;
+  maxContext: number;
 }
 
 function App() {
   // Hard-coded initial set of models
   const initialHcModels: Model[] = [
-    { name: "gemma3:27b", nickname: "gemma3:27b", context: 50000 },
+    { name: "gemma3:27b", nickname: "Q&A-Fast", context: 100352, maxContext: 131072 },
+    { name: "cogito:32b", nickname: "reasoning-Fast", context: 47104, maxContext: 131072 },
+    { name: "cogito:70b", nickname: "reasoning-Large", context: 2048, maxContext: 131072  },
+    { name: "qwen2.5-coder:32b", nickname: "code-Fast", context: 47104, maxContext: 131072 },
+    { name: "hf.co/bartowski/Qwen2.5-Coder-32B-Instruct-GGUF:Q6_K_L", nickname: "code-Large", context: 34816, maxContext: 131072 },
+    { name: "qwen2-math:72b", nickname: "math-Large", context: 2048, maxContext: 131072 },
+    { name: "deepseek-r1:32b", nickname: "thinking-Fast", context: 47104, maxContext: 131072  },
+    { name: "r1-1776:70b", nickname: "thinking-Large", context: 2048, maxContext: 131072  },
   ];
 
   // State for merged hard-coded + fetched models
