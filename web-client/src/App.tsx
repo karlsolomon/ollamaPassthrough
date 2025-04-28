@@ -99,10 +99,12 @@ function App() {
             {/* File upload button */}
             <input
               type="file"
-              webkitdirectory onChange={handleDirectoryUpload}
               multiple
-              className="form-control form-control-sm w-auto bg-dark text-light border-secondary"
+              webkitdirectory
+              mozdirectory
+              directory
               onChange={handleFileUpload}
+              className="form-control form-control-sm w-auto bg-dark text-light border-secondary"
             />
           </div>
         </div>
