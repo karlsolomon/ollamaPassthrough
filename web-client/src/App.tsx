@@ -67,6 +67,42 @@ function App() {
     setInput("");
   };
 
+  // —— Directory picker (Chromium-only) ——
+  const handleDirectoryPick = async () => {
+    if (!("showDirectoryPicker" in window)) {
+      alert(
+        "Folder uploads only work in Chromium-based browsers at the moment."
+      );
+      return;
+    }
+
+    try {
+      // @ts-ignore
+      const dirHandle: FileSystemDirectoryHandle =
+        await window.showDirectoryPicker();
+      const files: File[] = [];
+
+      // recursive traversal
+      const recurse = async (handle: FileSystemHandle) => {
+        if (handle.kind === "file") {
+          // @ts-ignore
+          files.push(await handle.getFile());
+        } else {
+          // @ts-ignore
+          for await (const entry of handle.values()) {
+            await recurse(entry);
+          }
+        }
+      };
+
+      await recurse(dirHandle);
+      if (files.length) uploadFileToContext(...files);
+    } catch (err) {
+      console.error("Directory pick failed:", err);
+    }
+  };
+
+
   
 
   return (
@@ -106,6 +142,14 @@ function App() {
               onChange={handleFileUpload}
               className="form-control form-control-sm w-auto bg-dark text-light border-secondary"
             />
+            {/* new “Select Folder” button */}
+            <button
+              type="button"
+              className="btn btn-outline-secondary btn-sm"
+              onClick={handleDirectoryPick}
+            >
+              Select Folder…
+            </button>
           </div>
         </div>
       </header>
