@@ -23,7 +23,7 @@ app.add_middleware(
 )
 
 OLLAMA_API = "http://localhost:11434"
-current_model = "gemma3:27b"
+current_model = "gemma3-ctx:27b"
 
 
 class UploadPayload(BaseModel):
@@ -43,7 +43,8 @@ async def upload(files: List[UploadFile] = File(...)):
     uploaded_file_context = "\n\n".join(contents)
     print("📂 Upload context initialized with:")
     print(uploaded_file_context[:500])  # limit preview
-    return {"message": f"{len(files)} file(s) uploaded successfully", "filenames": [f.filename for f in files]}
+    return {"message": f"{len(files)} file(s) uploaded successfully", "filenames": [
+        f.filename for f in files]}
 
 
 async def warmup_model():
@@ -51,7 +52,10 @@ async def warmup_model():
         async with httpx.AsyncClient() as client:
             res = await client.post(
                 f"{OLLAMA_API}/api/generate",
-                json={"model": current_model, "prompt": "ping", "stream": False},
+                json={
+                    "model": current_model,
+                    "prompt": "ping",
+                    "stream": False},
                 timeout=30,
             )
             if res.status_code == 200:
@@ -90,7 +94,8 @@ async def proxy_chat(request: Request):
                         if line.strip():
                             try:
                                 data = json.loads(line)
-                                content = data.get("message", {}).get("content")
+                                content = data.get(
+                                    "message", {}).get("content")
                                 if content:
                                     json_payload = json.dumps(
                                         {"message": {"content": content}}
@@ -99,12 +104,14 @@ async def proxy_chat(request: Request):
                             except json.JSONDecodeError:
                                 continue
 
-        return StreamingResponse(stream_response(), media_type="text/event-stream")
+        return StreamingResponse(
+            stream_response(), media_type="text/event-stream")
     else:
         async with httpx.AsyncClient(timeout=None) as client:
             resp = await client.post(f"{OLLAMA_API}/api/chat", json=payload)
             try:
-                return JSONResponse(content=resp.json(), status_code=resp.status_code)
+                return JSONResponse(content=resp.json(),
+                                    status_code=resp.status_code)
             except Exception as e:
                 return JSONResponse(
                     content={
@@ -129,6 +136,7 @@ async def set_model(request: Request):
     data = await request.json()
     current_model = data.get("model", current_model)
     print(f"🔁 Model switched to: {current_model}")
+    warmup_model()
     return {"status": "ok", "model": current_model}
 
 
@@ -147,4 +155,3 @@ app.mount(
 @app.get("/{full_path:path}")
 async def serve_spa():
     return FileResponse(os.path.join(frontend_path, "index.html"))
-
