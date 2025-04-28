@@ -48,7 +48,7 @@ function App() {
   }, []);
 
   const handleModelChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newModelNickname = e.target.value;
+    const newModel = e.target.value;
     setSelectedModel(newModel);
     await setModel(newModel);
     // Optionally: trigger a warmup call or other logic here
@@ -66,6 +66,8 @@ function App() {
     chatRef.current.handleSend(text);
     setInput("");
   };
+
+  
 
   return (
     <div
@@ -97,6 +99,7 @@ function App() {
             {/* File upload button */}
             <input
               type="file"
+              webkitdirectory onChange={handleDirectoryUpload}
               multiple
               className="form-control form-control-sm w-auto bg-dark text-light border-secondary"
               onChange={handleFileUpload}
