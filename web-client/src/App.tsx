@@ -15,15 +15,16 @@ export interface Model {
 function App() {
   // Hard-coded initial set of models
   const initialHcModels: Model[] = [
+    { name: "qwen3-ctx:30b", nickname: "thinking-VeryFast (MoE)", context: 68608, maxContext: 131072 },
+    { name: "qwen3-ctx:32b", nickname: "thinking-Fast (qwen)", context: 22528, maxContext: 131072 },
+    { name: "deepseek-r1-ctx:32b", nickname: "thinking-Fast (deepseek)", context: 47104, maxContext: 131072  },
+    { name: "r1-1776-ctx:70b", nickname: "thinking-Large", context: 2048, maxContext: 131072  },
     { name: "gemma3-ctx:27b", nickname: "Q&A-Fast", context: 100352, maxContext: 131072 },
     { name: "cogito-ctx:32b", nickname: "reasoning-Fast", context: 47104, maxContext: 131072 },
     { name: "cogito-ctx:70b", nickname: "reasoning-Large", context: 2048, maxContext: 131072  },
     { name: "qwen2.5-coder-ctx:32b", nickname: "code-Fast", context: 47104, maxContext: 131072 },
     { name: "qwen2.5-coder-large-ctx:32b", nickname: "code-Large", context: 34816, maxContext: 131072 },
     { name: "qwen2-math-ctx:72b", nickname: "math-Large", context: 1024, maxContext: 131072 },
-    { name: "deepseek-r1-ctx:32b", nickname: "thinking-Fast (deepseek)", context: 47104, maxContext: 131072  },
-    { name: "qwen3-ctx:32b", nickname: "thinking-Fast (qwen)", context: 22528, maxContext: 131072 },
-    { name: "r1-1776-ctx:70b", nickname: "thinking-Large", context: 2048, maxContext: 131072  },
   ];
 
   // State for merged hard-coded + fetched models
