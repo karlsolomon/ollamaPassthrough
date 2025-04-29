@@ -21,7 +21,8 @@ function App() {
     { name: "qwen2.5-coder-ctx:32b", nickname: "code-Fast", context: 47104, maxContext: 131072 },
     { name: "qwen2.5-coder-large-ctx:32b", nickname: "code-Large", context: 34816, maxContext: 131072 },
     { name: "qwen2-math-ctx:72b", nickname: "math-Large", context: 1024, maxContext: 131072 },
-    { name: "deepseek-r1-ctx:32b", nickname: "thinking-Fast", context: 47104, maxContext: 131072  },
+    { name: "deepseek-r1-ctx:32b", nickname: "thinking-Fast (deepseek)", context: 47104, maxContext: 131072  },
+    { name: "qwen3-ctx:32b", nickname: "thinking-Fast (qwen)", context: 22528, maxContext: 131072 },
     { name: "r1-1776-ctx:70b", nickname: "thinking-Large", context: 2048, maxContext: 131072  },
   ];
 
