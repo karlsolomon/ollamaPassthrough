@@ -99,7 +99,11 @@ async def proxy_chat(request: Request):
                             except json.JSONDecodeError:
                                 continue
 
-        return StreamingResponse(stream_response(), media_type="text/event-stream")
+        return StreamingResponse(
+            stream_response(),
+            media_type="text/event-stream",
+            headers={"X-Accel-Buffering": "no"},
+        )
     else:
         async with httpx.AsyncClient(timeout=None) as client:
             resp = await client.post(f"{OLLAMA_API}/api/chat", json=payload)
