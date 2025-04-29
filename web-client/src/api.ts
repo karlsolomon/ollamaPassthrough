@@ -1,4 +1,4 @@
-const BASE_URL = "http://10.224.174.3:34199"; // Your backend URL
+const BASE_URL = "http://chat.ezevals.com:34199"; // Your backend URL
 
 export async function uploadFileToContext(...files: File[]) {
   const formData = new FormData();
@@ -17,7 +17,7 @@ export async function uploadFileToContext(...files: File[]) {
 }
 
 export async function chatWithLLM(messages: any[], model: string, onData: (chunk: string) => void) {
-  const response = await fetch(`${BASE_URL}/v1/chat/completions`, {
+  const response = await fetch(`/v1/chat/completions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -53,13 +53,13 @@ export async function chatWithLLM(messages: any[], model: string, onData: (chunk
 }
 
 export async function fetchModelList(): Promise<string[]> {
-  const res = await fetch(`${BASE_URL}/models`);
+  const res = await fetch(`/models`);
   const data = await res.json();
   return data.models || [];
 }
 
 export async function setModel(model: string) {
-  await fetch(`${BASE_URL}/model`, {
+  await fetch(`/model`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ model }),
