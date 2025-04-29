@@ -6,6 +6,14 @@ body {
   color: #ddd;
 }
 
+.thoughts {
+  color: #551A8B; /* Purple for thoughts */
+  font-style: italic;
+  margin: 10px 0;
+  padding: 5px;
+  background-color: #f0e6fa;
+}
+
 .chat-message {
   display: flex;
   margin-bottom: 0.75rem;
