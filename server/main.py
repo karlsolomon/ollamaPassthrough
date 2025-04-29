@@ -23,7 +23,7 @@ app.add_middleware(
 )
 
 OLLAMA_API = "http://localhost:11434"
-current_model = "gemma3-ctx:27b"
+current_model = "qwen3-ctx:30b"
 
 
 class UploadPayload(BaseModel):
