@@ -137,6 +137,7 @@ function App() {
             {/* File upload button */}
             <input
               type="file"
+              accept=".pdf"
               multiple
               webkitdirectory
               mozdirectory
