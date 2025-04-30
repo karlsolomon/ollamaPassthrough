@@ -1,9 +1,6 @@
 import asyncio
 import json
 import os
-from marker.converters.pdf import PdfConverter
-from marker.models import create_model_dict
-from marker.output import text_from_rendered
 from typing import List
 
 import httpx
@@ -11,6 +8,9 @@ from fastapi import FastAPI, File, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from marker.converters.pdf import PdfConverter
+from marker.models import create_model_dict
+from marker.output import text_from_rendered
 from pydantic import BaseModel
 
 uploaded_file_context = ""
@@ -37,6 +37,7 @@ async def upload_file(file: UploadFile, contents: List[str]):
     file_context = await file.read()
     text = file_context.decode("utf-8")
     contents.append(f"# File: {file.filename}\n{text}")
+
 
 TEMP_DIR = "/tmp/pdf_processing"
 
@@ -70,8 +71,10 @@ async def upload(files: List[UploadFile] = File(...)):
                 f.write(text)
         for file in os.listdir(output_dir):
             await upload_file(file, contents)
-
-    uploaded_file_context = "\n\n".join(contents)
+    except Exception:
+        print("Exception in file upload!!!")
+    finally:
+        uploaded_file_context = "\n\n".join(contents)
     return {
         "message": f"{len(files)} file(s) uploaded successfully",
         "filenames": [f.filename for f in files],
@@ -83,10 +86,7 @@ async def warmup_model():
         async with httpx.AsyncClient() as client:
             res = await client.post(
                 f"{OLLAMA_API}/api/generate",
-                json={
-                    "model": current_model,
-                    "prompt": "ping",
-                    "stream": False},
+                json={"model": current_model, "prompt": "ping", "stream": False},
                 timeout=30,
             )
             if res.status_code == 200:
@@ -124,8 +124,7 @@ async def proxy_chat(request: Request):
                         if line.strip():
                             try:
                                 data = json.loads(line)
-                                content = data.get(
-                                    "message", {}).get("content")
+                                content = data.get("message", {}).get("content")
                                 if content:
                                     json_payload = json.dumps(
                                         {"message": {"content": content}}
@@ -143,8 +142,7 @@ async def proxy_chat(request: Request):
         async with httpx.AsyncClient(timeout=None) as client:
             resp = await client.post(f"{OLLAMA_API}/api/chat", json=payload)
             try:
-                return JSONResponse(content=resp.json(),
-                                    status_code=resp.status_code)
+                return JSONResponse(content=resp.json(), status_code=resp.status_code)
             except Exception as e:
                 return JSONResponse(
                     content={
