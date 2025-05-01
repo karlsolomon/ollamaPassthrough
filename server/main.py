@@ -1,7 +1,9 @@
 import asyncio
 import json
 import os
+import shutil
 import tempfile
+from io import StringIO
 from typing import List
 
 import httpx
@@ -9,6 +11,7 @@ from fastapi import FastAPI, File, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from marker.config.parser import ConfigParser
 from marker.converters.pdf import PdfConverter
 from marker.models import create_model_dict
 from marker.output import text_from_rendered
@@ -43,6 +46,10 @@ async def upload_file(file: UploadFile, contents: List[str]):
     contents.append(f"# File: {file.filename}\n{text}")
 
 
+async def upload_string(name: str, text: str, contents: List[str]):
+    contents.append(f"# File: {name}\n{text}")
+
+
 TEMP_DIR = "./"
 
 
@@ -50,18 +57,20 @@ TEMP_DIR = "./"
 async def upload(files: List[UploadFile] = File(...)):
     global uploaded_file_context
     contents = []
-    # os.makedirs(TEMP_DIR, exist_ok=True)
     input_dir = os.path.join(TEMP_DIR, "pdf_in")
     output_dir = os.path.join(TEMP_DIR, "md_out")
-    os.makedirs(input_dir, exist_ok=True)
-    os.makedirs(output_dir, exist_ok=True)
+    if os.path.exists(input_dir):
+        shutil.rmtree(input_dir)
+    if os.path.exists(output_dir):
+        shutil.rmtree(output_dir)
+    os.makedirs(input_dir)
+    os.makedirs(output_dir)
     converter = PdfConverter(artifact_dict=create_model_dict())
 
     try:
         for file in files:
             print(f"Saving {file.filename}.")
             if file.filename.endswith(".pdf"):
-                print("pdf")
                 file_path = os.path.join(input_dir, file.filename)
                 with open(file_path, "wb") as f:
                     f.write(await file.read())
@@ -69,17 +78,24 @@ async def upload(files: List[UploadFile] = File(...)):
                 await upload_file(file, contents)
         for file in os.listdir(input_dir):
             print("converting pdf to md")
-            text = text_from_rendered(converter(os.path.join(input_dir, file)))
-            newFile = os.path.join(output_dir, f"{file}.md")
-            with open(newFile, "w") as f:
-                f.write(text)
-        for file in os.listdir(output_dir):
-            print(f"uploading {file.filename}.")
-            await upload_file(file, contents)
-    except Exception:
-        print("Exception in file upload!!!")
-    finally:
-        uploaded_file_context = "\n\n".join(contents)
+            config = {
+                "output_format": "markdown",
+                "disable_image_extraction": True,
+            }
+            config_parser = ConfigParser(config)
+            converter = PdfConverter(
+                config=config_parser.generate_config_dict(),
+                artifact_dict=create_model_dict(),
+                processor_list=config_parser.get_processors(),
+                renderer=config_parser.get_renderer(),
+            )
+            text, _, _ = text_from_rendered(converter(os.path.join(input_dir, file)))
+            print("uploading md")
+            await upload_string(f"{file.split(".")[0]}.md", text, contents)
+    except Exception as e:
+        print(f"Exception in file upload!!! {e}")
+    uploaded_file_context = "\n\n".join(contents)
+    print(f"uploaded_file_context: {uploaded_file_context}")
     return {
         "message": f"{len(files)} file(s) uploaded successfully",
         "filenames": [f.filename for f in files],
