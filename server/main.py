@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import tempfile
 from typing import List
 
 import httpx
@@ -34,19 +35,22 @@ class UploadPayload(BaseModel):
 
 
 async def upload_file(file: UploadFile, contents: List[str]):
+    print("reading")
     file_context = await file.read()
+    print("decoding")
     text = file_context.decode("utf-8")
+    print("adding to contents list")
     contents.append(f"# File: {file.filename}\n{text}")
 
 
-TEMP_DIR = "/tmp/pdf_processing"
+TEMP_DIR = "./"
 
 
 @app.post("/upload")
 async def upload(files: List[UploadFile] = File(...)):
     global uploaded_file_context
     contents = []
-    os.makedirs(TEMP_DIR, exist_ok=True)
+    # os.makedirs(TEMP_DIR, exist_ok=True)
     input_dir = os.path.join(TEMP_DIR, "pdf_in")
     output_dir = os.path.join(TEMP_DIR, "md_out")
     os.makedirs(input_dir, exist_ok=True)
@@ -62,10 +66,7 @@ async def upload(files: List[UploadFile] = File(...)):
                 with open(file_path, "wb") as f:
                     f.write(await file.read())
             else:
-                print("txt")
-                file_path = os.path.join(output_dir, file.filename)
-                with open(file_path, "w") as f:
-                    f.write(await file.read())
+                await upload_file(file, contents)
         for file in os.listdir(input_dir):
             print("converting pdf to md")
             text = text_from_rendered(converter(os.path.join(input_dir, file)))
@@ -73,7 +74,7 @@ async def upload(files: List[UploadFile] = File(...)):
             with open(newFile, "w") as f:
                 f.write(text)
         for file in os.listdir(output_dir):
-            print("uploading")
+            print(f"uploading {file.filename}.")
             await upload_file(file, contents)
     except Exception:
         print("Exception in file upload!!!")
@@ -90,10 +91,7 @@ async def warmup_model():
         async with httpx.AsyncClient() as client:
             res = await client.post(
                 f"{OLLAMA_API}/api/generate",
-                json={
-                    "model": current_model,
-                    "prompt": "ping",
-                    "stream": False},
+                json={"model": current_model, "prompt": "ping", "stream": False},
                 timeout=30,
             )
             if res.status_code == 200:
@@ -131,8 +129,7 @@ async def proxy_chat(request: Request):
                         if line.strip():
                             try:
                                 data = json.loads(line)
-                                content = data.get(
-                                    "message", {}).get("content")
+                                content = data.get("message", {}).get("content")
                                 if content:
                                     json_payload = json.dumps(
                                         {"message": {"content": content}}
@@ -150,8 +147,7 @@ async def proxy_chat(request: Request):
         async with httpx.AsyncClient(timeout=None) as client:
             resp = await client.post(f"{OLLAMA_API}/api/chat", json=payload)
             try:
-                return JSONResponse(content=resp.json(),
-                                    status_code=resp.status_code)
+                return JSONResponse(content=resp.json(), status_code=resp.status_code)
             except Exception as e:
                 return JSONResponse(
                     content={
