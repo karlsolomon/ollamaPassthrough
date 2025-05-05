@@ -43,11 +43,12 @@ async def upload_file(file: UploadFile, contents: List[str]):
     print("decoding")
     text = file_context.decode("utf-8")
     print("adding to contents list")
-    contents.append(f"# File: {file.filename}\n{text}")
+    contents.append(f"# File: {file.filename}\n{text}\n#EOF:{file.filename}\n")
 
 
 async def upload_string(name: str, text: str, contents: List[str]):
-    contents.append(f"# File: {name}\n{text}")
+    print("uploading pdf text")
+    contents.append(f"# File: {name}\n{text}\n#EOF:{name}\n")
 
 
 TEMP_DIR = "./"
@@ -95,7 +96,6 @@ async def upload(files: List[UploadFile] = File(...)):
     except Exception as e:
         print(f"Exception in file upload!!! {e}")
     uploaded_file_context = "\n\n".join(contents)
-    print(f"uploaded_file_context: {uploaded_file_context}")
     return {
         "message": f"{len(files)} file(s) uploaded successfully",
         "filenames": [f.filename for f in files],
@@ -190,6 +190,13 @@ async def set_model(request: Request):
     print(f"🔁 Model switched to: {current_model}")
     await warmup_model()
     return {"status": "ok", "model": current_model}
+
+
+@app.post("/clear")
+async def clear_history(request: Request):
+    async with httpx.AsyncClient() as client:
+        client.stream("POST", f"{OLLAMA_API}/api/clear")
+    return {"status": "ok"}
 
 
 # Path to your frontend build directory

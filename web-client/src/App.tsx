@@ -33,6 +33,8 @@ function App() {
   const [selectedModel, setSelectedModel] = useState<string>(initialHcModels[0]?.name || "");
   const [input, setInput] = useState("");
   const chatRef = useRef<ChatBoxHandle>(null);
+  const [isUploadComplete, setIsUploadComplete] = useState(true);
+  const [isStreamingComplete, setIsStreamingComplete] = useState(true);
 
   // Fetch model names and merge into hcModels
   useEffect(() => {
@@ -56,17 +58,35 @@ function App() {
     // Optionally: trigger a warmup call or other logic here
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    uploadFileToContext(...Array.from(files));
+    setIsUploadComplete(false);
+    try {
+      await uploadFileToContext(...Array.from(files));
+      setInput("Please read these uploaded files.");
+      handleSend();
+      setIsUploadComplete(true);
+    } catch (error) {
+      console.error("File upload failed:", error);
+      setIsUploadComplete(true);
+    }
   };
 
   const handleSend = async () => {
-    const text = input.trim();
-    if (!text || !chatRef.current) return;
-    chatRef.current.handleSend(text);
-    setInput("");
+    setIsStreamingComplete(false);
+    try{
+        const text = input.trim();
+        if (!text || !chatRef.current) return;
+        await chatRef.current.handleSend(text);
+        setInput("");
+    }
+    catch (error) {
+        console.error("Error sending message:", error);
+    }
+    finally {
+        setIsStreamingComplete(true);
+    }
   };
 
   // —— Directory picker (Chromium-only) ——
@@ -102,6 +122,26 @@ function App() {
     } catch (err) {
       console.error("Directory pick failed:", err);
     }
+  };
+
+  const handleClearChat = async () => {
+    try {
+      const response = await fetch("/clear", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (response.ok) {
+        console.info("Cleared chat history");
+      }
+      else {
+        console.error("Failed to clear chat history!");
+      }
+    }
+    catch(error) {
+      console.error("Error clearing chat history:", error);
+    } 
   };
 
 
@@ -163,6 +203,13 @@ function App() {
       <footer className="border-top mt-auto sticky-bottom" style={{ backgroundColor: '#1e1f22', borderTop: '1px solid #444' }}>
         <div className="container py-2">
           <div className="d-flex gap-2">
+            <button
+              className="btn btn-danger"
+              onClick={handleClearChat}
+              style={{ marginRight: '10px' }}
+            >
+              Clear Chat
+            </button>
             <textarea
               className="form-control bg-dark text-light border-secondary"
               value={input}
@@ -175,7 +222,7 @@ function App() {
             <button
               className="btn btn-primary"
               onClick={handleSend}
-              disabled={chatRef.current?.streaming}
+              disabled={chatRef.current?.streaming || !isUploadComplete || !isStreamingComplete}
             >
               Send
             </button>

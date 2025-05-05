@@ -1,5 +1,17 @@
 const BASE_URL = "http://chat.ezevals.com:34199"; // Your backend URL
 
+export async function clearChat() {
+  const response = await fetch("/clear", {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Chat Clear failed: ${response.status}`);
+  }
+
+  return response.json();
+}
+
 export async function uploadFileToContext(...files: File[]) {
   const formData = new FormData();
   files.forEach(file => formData.append("files", file));
