@@ -72,19 +72,41 @@ const ChatBox = forwardRef<ChatBoxHandle>((_, ref) => {
     streaming,
   }));
 
+  // Updated to handle <think>/</think> tags
+  const renderMessageContent = (content: string) => {
+    const parts = content.split("<think>");
+    if (parts.length <= 1) {
+      return <ReactMarkdown>{content}</ReactMarkdown>;
+    }
+
+    const [before, thoughtsAndResponse] = parts;
+    const [thoughts, response] = thoughtsAndResponse.split("</think>");
+
+    return (
+      <>
+        <ReactMarkdown>{before}</ReactMarkdown>
+        <div className="thoughts">
+          <ReactMarkdown>{thoughts}</ReactMarkdown>
+        </div>
+        <ReactMarkdown>{response}</ReactMarkdown>
+      </>
+    );
+  };
+
   return (
     <div className="d-flex flex-column h-100 px-3 pt-3">
       <div className="flex-grow-1 overflow-auto mb-3 border rounded p-3" ref={containerRef}>
         {messages.map((msg, i) => (
           <div key={i} className={`chat-message ${msg.role}`}>
             <div className={`bubble ${msg.role}`}>
-              <ReactMarkdown
-                children={msg.content}
-                remarkPlugins={[remarkGfm, remarkMath]}
-                rehypePlugins={[rehypeRaw, rehypeKatex, rehypePrism]}
-              />
+              {msg.role === "assistant" ? (
+                renderMessageContent(msg.content)
+              ) : (
+                <ReactMarkdown>{msg.content}</ReactMarkdown>
+              )}
             </div>
-          </div>
+          </
+          div>
         ))}
         {streaming && <div className="text-muted text-center">Streaming...</div>}
       </div>
